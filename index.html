@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Conectar WhatsApp · Rio Vermelho</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; color: #1a1a1a; background: #ffffff; }
+    button { font-size: 18px; padding: 14px 22px; border: 0; border-radius: 8px; background: #1877f2; color: #ffffff; cursor: pointer; }
+    button:disabled { background: #9bb8e8; cursor: wait; }
+    pre { background: #f4f4f4; padding: 12px; border-radius: 8px; white-space: pre-wrap; word-break: break-all; }
+    .aviso { background: #fff4e5; border-left: 4px solid #e69500; padding: 10px 14px; }
+  </style>
+</head>
+<body>
+  <h1>Conectar o WhatsApp Business da Rio Vermelho</h1>
+  <p class="aviso">Use só com o Leonardo acompanhando. No celular, quando aparecer a opção de compartilhar o histórico de conversas, <strong>desligue</strong>.</p>
+  <button id="conectar" disabled>Carregando…</button>
+  <h2>Registro</h2>
+  <pre id="registro">(vazio)</pre>
+  <script>
+    const APP_ID = "1428405135913828";
+    const CONFIG_ID = "COLE_AQUI_O_CONFIG_ID";
+    const GRAPH_VERSION = "v23.0";
+    // Embedded Signup v4: a versão vem da configuração de login (com produtos).
+    // featureType pede a coexistência (número que já está no app WhatsApp Business).
+    // Confira na Etapa 1.2 se o Builder gera estes mesmos extras.
+    const EXTRAS = { version: "v4", featureType: "whatsapp_business_app_onboarding" };
+
+    const registro = document.getElementById("registro");
+    const botao = document.getElementById("conectar");
+    function anotar(texto) {
+      const hora = new Date().toLocaleTimeString("pt-BR");
+      const antes = registro.textContent === "(vazio)" ? "" : registro.textContent;
+      registro.textContent = antes + "[" + hora + "] " + texto + "\n";
+    }
+
+    // Resultado do fluxo: a Meta devolve os IDs da conta (waba_id e, às vezes, phone_number_id). Nenhum segredo.
+    window.addEventListener("message", function (event) {
+      if (!event.origin.endsWith("facebook.com")) return;
+      let dados;
+      try { dados = JSON.parse(event.data); } catch (e) { return; }
+      if (dados.type !== "WA_EMBEDDED_SIGNUP") return;
+      anotar("EVENTO: " + dados.event);
+      anotar(JSON.stringify(dados.data, null, 2));
+    });
+
+    window.fbAsyncInit = function () {
+      FB.init({ appId: APP_ID, autoLogAppEvents: true, xfbml: true, version: GRAPH_VERSION });
+      if (CONFIG_ID.indexOf("COLE_AQUI") === 0) {
+        botao.textContent = "Falta o CONFIG_ID";
+        anotar("Configure o CONFIG_ID antes de usar.");
+        return;
+      }
+      botao.disabled = false;
+      botao.textContent = "Conectar WhatsApp Business";
+    };
+
+    botao.addEventListener("click", function () {
+      anotar("Abrindo o fluxo da Meta… extras = " + JSON.stringify(EXTRAS));
+      FB.login(function (resposta) {
+        if (resposta.authResponse && resposta.authResponse.code) {
+          anotar("Fluxo concluído do lado do Facebook. O código de troca não é usado aqui.");
+        } else {
+          anotar("Janela fechada sem concluir: " + JSON.stringify(resposta));
+        }
+      }, {
+        config_id: CONFIG_ID,
+        response_type: "code",
+        override_default_response_type: true,
+        extras: EXTRAS
+      });
+    });
+  </script>
+  <script async defer crossorigin="anonymous" src="https://connect.facebook.net/pt_BR/sdk.js"></script>
+</body>
+</html>
